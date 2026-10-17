@@ -85,6 +85,8 @@ main { max-width: 1440px; margin: 0 auto; padding: 22px 24px 8px; display: flex;
 .kpi-s { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 11.5px; color: var(--muted); }
 .kpi-s b { color: var(--ink-2); font-weight: 650; }
 .kpi .spark { margin-top: auto; height: 30px; width: 100%; display: block; }
+.kpis.k4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kpi-v.txt { font-size: 19px; white-space: normal; margin-top: 4px; line-height: 1.25; }
 .kpi.hero { grid-column: span 2; border-top-color: var(--brand); background: linear-gradient(135deg, #fff 55%, var(--brand-soft)); }
 .kpi.hero .kpi-v { font-size: 44px; }
 .hero-g { display: grid; grid-template-columns: 1fr auto; gap: 10px 18px; align-items: end; height: 100%; }
@@ -156,6 +158,7 @@ svg text { font-family: var(--font); }
 .par-80 { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; color: var(--brand-ink); margin: 2px 6px; }
 .par-80::before, .par-80::after { content: ""; flex: 1; border-top: 1px dashed var(--brand); }
 @keyframes crescer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.par.largo .par-r { grid-template-columns: 22px minmax(130px, 1.5fr) minmax(80px, 1fr) 52px 54px; }
 
 /* ---------- calendário ---------- */
 .cal-wrap { display: flex; flex-wrap: wrap; gap: 18px 26px; }
@@ -233,6 +236,7 @@ footer { max-width: 1440px; margin: 0 auto; padding: 10px 24px 28px; color: var(
 @media (max-width: 1200px) {
   .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .kpi.hero { grid-column: span 3; }
+  .kpis.k4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sm { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .row.c2, .row.c2e { grid-template-columns: minmax(0, 1fr); }
   .mascote { display: none; }
@@ -259,7 +263,7 @@ footer { max-width: 1440px; margin: 0 auto; padding: 10px 24px 28px; color: var(
   .hero-g { grid-template-columns: 1fr; }
   .hero-side { align-items: flex-start; text-align: left; }
   .sm { grid-template-columns: minmax(0, 1fr); }
-  .par-r { grid-template-columns: 18px minmax(80px, 110px) 1fr 44px; }
+  .par-r, .par.largo .par-r { grid-template-columns: 18px minmax(80px, 130px) 1fr 44px; }
   .par-c { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
@@ -290,7 +294,7 @@ footer { max-width: 1440px; margin: 0 auto; padding: 10px 24px 28px; color: var(
 <div id="tip" hidden></div>
 
 <script>
-const D = {"auto":{"status":["Add Com Sucesso","Não Coube no Veículo","Não Deu Tempo","Removidos Como Fora de Rota","Erro Operacional"],"ins":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"st":[[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]]},"gerado":"15/10/2026 17:58","hub":"LCE-04","limites":{"critico":500,"atencao":300},"familias":[{"k":"sobras","nome":"Sobras"},{"k":"avarias","nome":"Avarias"},{"k":"onhold","nome":"ON Holds"},{"k":"expedicao","nome":"Expedição & operação"},{"k":"risco","nome":"Risco de perda"}],"cats":[{"k":"SOBRAS_LM","nome":"Sobras LM","curto":"Sobras LM","fam":"sobras"},{"k":"SOBRAS_XPT","nome":"Sobras XPT","curto":"Sobras XPT","fam":"sobras"},{"k":"FORA_DE_ROTA_RETIRADOS_NA_BANCADA","nome":"Fora de rota (bancada)","curto":"Fora de rota","fam":"expedicao"},{"k":"VOLUMOSOS_ESQUECIDOS","nome":"Volumosos esquecidos","curto":"Volumosos","fam":"expedicao"},{"k":"ERROS_OPERACIONAIS","nome":"Erros operacionais","curto":"Erros op.","fam":"expedicao"},{"k":"ON_HOLDS","nome":"ON Holds","curto":"ON Holds","fam":"onhold"},{"k":"PROJECAO_PARA_LOST","nome":"Projeção para Lost","curto":"Proj. Lost","fam":"risco"},{"k":"NAO_COUBE_NO_VEICULO","nome":"Não coube no veículo","curto":"Não coube","fam":"expedicao"},{"k":"AVARIAS_HUB","nome":"Avarias HUB","curto":"Av. HUB","fam":"avarias"},{"k":"AVARIAS_EXTERNAS","nome":"Avarias externas","curto":"Av. externas","fam":"avarias"},{"k":"TRATATIVA_DE_ENDERECO","nome":"Tratativa de endereço","curto":"Trat. endereço","fam":"risco"}],"dias":["2026-10-01","2026-10-02","2026-10-03","2026-10-04","2026-10-05","2026-10-06","2026-10-07","2026-10-08","2026-10-09","2026-10-10","2026-10-11","2026-10-12","2026-10-13","2026-10-14","2026-10-15"],"v":[[877,2,0,0,3,76,0,0,7,22,0],[51,35,0,0,18,41,9,17,0,0,0],[32,11,19,1,19,163,0,24,20,54,0],[640,15,28,0,7,90,0,9,0,0,0],[15,6,0,0,19,128,0,48,0,0,0],[11,44,0,3,24,127,0,15,32,77,0],[99,0,0,0,3,109,0,3,34,98,0],[17,19,0,0,2,61,0,5,0,0,0],[0,4,3,0,15,93,12,26,38,124,0],[76,4,58,0,73,88,0,49,0,0,1],[1313,15,59,0,30,246,0,7,42,147,0],[904,20,49,0,6,252,0,17,45,153,5],[5,14,0,0,21,221,0,37,51,167,3],[46,0,0,0,30,82,0,10,0,0,0],[2,0,0,0,3,193,0,1,53,198,1]]};
+const D = {"auto":{"status":["Não Coube no Veículo","Não Deu Tempo","Removidos Como Fora de Rota","Erro Operacional"],"ins":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,0],"st":[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[1,0,0,0],[1,1,0,0],[0,0,0,0]]},"fleet":[[15,"LEANDRO SOBREIRA SILVA",11],[15,"OSMAR HENRIQUE",15]],"flut":[],"bases":["Araripina","Barro","Campos Sales","Itaporanga","Ouricuri","Picos","Pombal","Tauá"],"gerado":"17/10/2026 15:17","hub":"LCE-04","limites":{"critico":500,"atencao":300},"familias":[{"k":"sobras","nome":"Sobras"},{"k":"avarias","nome":"Avarias"},{"k":"onhold","nome":"ON Holds"},{"k":"expedicao","nome":"Expedição & operação"},{"k":"risco","nome":"Risco de perda"}],"cats":[{"k":"SOBRAS_LM","nome":"Sobras LM","curto":"Sobras LM","fam":"sobras"},{"k":"SOBRAS_XPT","nome":"Sobras XPT","curto":"Sobras XPT","fam":"sobras"},{"k":"FORA_DE_ROTA_RETIRADOS_NA_BANCADA","nome":"Fora de rota (bancada)","curto":"Fora de rota","fam":"expedicao"},{"k":"VOLUMOSOS_ESQUECIDOS","nome":"Volumosos esquecidos","curto":"Volumosos","fam":"expedicao"},{"k":"ERROS_OPERACIONAIS","nome":"Erros operacionais","curto":"Erros op.","fam":"expedicao"},{"k":"ON_HOLDS","nome":"ON Holds","curto":"ON Holds","fam":"onhold"},{"k":"PROJECAO_PARA_LOST","nome":"Projeção para Lost","curto":"Proj. Lost","fam":"risco"},{"k":"NAO_COUBE_NO_VEICULO","nome":"Não coube no veículo","curto":"Não coube","fam":"expedicao"},{"k":"AVARIAS_HUB","nome":"Avarias HUB","curto":"Av. HUB","fam":"avarias"},{"k":"AVARIAS_EXTERNAS","nome":"Avarias externas","curto":"Av. externas","fam":"avarias"},{"k":"TRATATIVA_DE_ENDERECO","nome":"Tratativa de endereço","curto":"Trat. endereço","fam":"risco"}],"dias":["2026-10-01","2026-10-02","2026-10-03","2026-10-04","2026-10-05","2026-10-06","2026-10-07","2026-10-08","2026-10-09","2026-10-10","2026-10-11","2026-10-12","2026-10-13","2026-10-14","2026-10-15","2026-10-16","2026-10-17"],"v":[[877,2,0,0,3,76,0,0,7,22,0],[51,35,0,0,18,41,9,17,0,0,0],[32,11,19,1,19,163,0,24,20,54,0],[640,15,28,0,7,90,0,9,0,0,0],[15,6,0,0,19,128,0,48,0,0,0],[11,44,0,3,24,127,0,15,32,77,0],[99,0,0,0,3,109,0,3,34,98,0],[17,19,0,0,2,61,0,5,0,0,0],[0,4,3,0,15,93,12,26,38,124,0],[76,4,58,0,73,88,0,49,0,0,0],[1313,15,59,0,30,246,0,7,42,147,0],[904,20,49,0,6,252,0,17,45,153,0],[5,14,0,0,21,221,0,37,51,167,0],[46,0,0,0,30,82,0,10,0,0,0],[2,0,0,0,3,193,0,1,53,198,0],[39,3,0,0,16,72,0,13,55,206,0],[0,12,31,0,13,16,0,14,55,196,0]]};
 const LOGO = null;
 const MASCOTE = null;
 
@@ -448,8 +452,8 @@ function passoBonito(x) {
   const p = Math.pow(10, Math.floor(Math.log10(x || 1))), m = x / p;
   return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p;
 }
-function escala(mx, ticks = 4) {
-  const passo = passoBonito(Math.max(mx, 1) / ticks);
+function escala(mx, ticks = 4, inteiro = false) {
+  const passo = Math.max(inteiro ? 1 : 0, passoBonito(Math.max(mx, 1) / ticks));
   return { passo, topo: Math.ceil(Math.max(mx, 1) / passo) * passo };
 }
 const curto = v => v >= 1000 ? (v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " mil" : fmt(v);
@@ -477,7 +481,7 @@ function colunasDia(el, idx, series, { refs = [], linha = null, alto = 300, tip 
   const iw = W - m.l - m.r, ih = H - m.t - m.b, n = idx.length;
   const somas = idx.map((_, j) => series.reduce((s, se) => s + se.vals[j], 0));
   const mx = Math.max(...somas, ...(linha ? linha.vals.filter(v => v != null) : [0]), ...refs.map(r => r.v * 1.08));
-  const es = escala(mx), y = v => m.t + (1 - v / es.topo) * ih;
+  const es = escala(mx, 4, true), y = v => m.t + (1 - v / es.topo) * ih;
   const band = iw / n, bw = Math.max(1, band * (n > 60 ? .78 : .66)), x = j => m.l + band * j + band / 2;
   let g = eixos(W, H, m, es, iw);
   idx.forEach((i, j) => {
@@ -914,9 +918,8 @@ function exportaCsv(linhas) {
 /* ================= Auto Add ================= */
 // Fora do total de ocorrências e do farol. Cada insucesso recebe um Status na planilha.
 const AA = D.auto, NS = AA.status.length;
-const AA_COR = ["#0ca30c", "#eda100", "#2a78d6", "#e87ba4", "#d03b3b", "#4a3aa7", "#1baf7a", "#898781"];
+const AA_COR = ["#eda100", "#2a78d6", "#e87ba4", "#d03b3b", "#4a3aa7", "#1baf7a", "#898781"];
 const AA_SEM = "#c3c2b7";
-const kOk = AA.status.indexOf("Add Com Sucesso");
 const lancDia = i => AA.st[i].reduce((x, y) => x + y, 0);
 const semDia = i => Math.max(0, AA.ins[i] - lancDia(i));
 function somaAA(a, b) {
@@ -937,27 +940,23 @@ function tipAA(i) {
 
 function paginaAutoAdd(c) {
   const cur = somaAA(c.a, c.b), prev = c.p ? somaAA(c.p.a, c.p.b) : null;
-  const ok = kOk < 0 ? 0 : cur.st[kOk], falhas = cur.lanc - ok;
-  const motivos = AA.status.map((n, s) => [s, cur.st[s]]).filter(([s]) => s !== kOk).sort((x, y) => y[1] - x[1]);
+  const motivos = AA.status.map((n, s) => [s, cur.st[s]]).sort((x, y) => y[1] - x[1]);
   const top = motivos.length && motivos[0][1] > 0 ? motivos[0] : null;
   const diasSem = c.idx.filter(i => semDia(i) > 0), diasAMais = c.idx.filter(i => lancDia(i) > AA.ins[i]);
+  const diasCom = c.idx.filter(i => AA.ins[i] > 0);
   const cob = cur.ins ? Math.min(1, (cur.lanc) / cur.ins) : null;
 
   app.innerHTML = cabecalho("Insucesso de Auto Add", textoPeriodo(c) + " · fora do total de ocorrências e do farol",
       cur.sem ? `<span class="badge bad">${fmt(cur.sem)} sem status</span>` : cur.ins ? `<span class="badge good">✓ Todos com status</span>` : "")
-    + `<div class="kpis">
+    + `<div class="kpis k4">
       <div class="kpi" style="--c:#ee4d2d"><div class="kpi-l">Insucessos de Auto Add</div><div class="kpi-v" data-n="${cur.ins}">0</div>
         <div class="kpi-s">${delta(cur.ins, prev && prev.ins)}<span>Média/dia <b>${fmt2(cur.ins / c.n)}</b></span></div>
         ${sparkline(c.idx.map(i => AA.ins[i]), "#ee4d2d")}</div>
-      <div class="kpi" style="--c:${AA_COR[0]}"><div class="kpi-l">Add com sucesso</div><div class="kpi-v" data-n="${ok}">0</div>
-        <div class="kpi-s"><span><b>${cur.lanc ? pct(ok / cur.lanc, 0) : "–"}</b> dos status lançados</span></div>
-        ${kOk < 0 ? "" : sparkline(c.idx.map(i => AA.st[i][kOk]), AA_COR[0])}</div>
-      <div class="kpi" style="--c:${ST_COR.crit}"><div class="kpi-l">Não adicionados</div><div class="kpi-v" data-n="${falhas}">0</div>
-        <div class="kpi-s"><span><b>${cur.lanc ? pct(falhas / cur.lanc, 0) : "–"}</b> dos status lançados</span></div>
-        ${sparkline(c.idx.map(i => lancDia(i) - (kOk < 0 ? 0 : AA.st[i][kOk])), ST_COR.crit)}</div>
+      <div class="kpi" style="--c:#0b0b0b"><div class="kpi-l">Dias com insucesso</div><div class="kpi-v" data-n="${diasCom.length}">0</div>
+        <div class="kpi-s"><span>de <b>${c.n}</b> dia(s) no período · ${pct(diasCom.length / c.n, 0)}</span></div></div>
       <div class="kpi" style="--c:${top ? AA_COR[top[0] % AA_COR.length] : "#898781"}"><div class="kpi-l">Principal motivo</div>
-        <div class="kpi-v" style="font-size:19px;white-space:normal;margin-top:4px">${top ? esc(AA.status[top[0]]) : "–"}</div>
-        <div class="kpi-s" style="margin-top:auto"><span>${top ? `<b>${fmt(top[1])}</b> · ${pct(top[1] / Math.max(falhas, 1), 0)} das falhas` : "nenhuma falha com status"}</span></div></div>
+        <div class="kpi-v txt">${top ? esc(AA.status[top[0]]) : "–"}</div>
+        <div class="kpi-s" style="margin-top:auto"><span>${top ? `<b>${fmt(top[1])}</b> · ${pct(top[1] / Math.max(cur.lanc, 1), 0)} dos status lançados` : "nenhum status lançado"}</span></div></div>
       <div class="kpi" style="--c:${cur.sem ? ST_COR.aten : ST_COR.ok}"><div class="kpi-l">Status preenchidos</div><div class="kpi-v">${cob == null ? "–" : pct(cob, 0)}</div>
         <div class="kpi-s"><span><b>${fmt(cur.lanc)}</b> de ${fmt(cur.ins)} insucessos</span></div>
         <div class="kpi-s" style="margin-top:auto"><span>${cur.sem ? `${fmt(cur.sem)} sem status em ${diasSem.length} dia(s)` : "nenhum pendente"}</span></div></div>
@@ -982,7 +981,7 @@ function paginaAutoAdd(c) {
   const linhas = [...AA.status.map((n, s) => [n, cur.st[s], prev && prev.st[s], AA_COR[s % AA_COR.length]]), ["Sem status", cur.sem, prev && prev.sem, AA_SEM]]
     .filter(([n, v, p]) => n !== "Sem status" || v || p);
   const mx = Math.max(1, ...linhas.map(l => l[1])), base = Math.max(cur.lanc + cur.sem, 1);
-  document.getElementById("aa-st").innerHTML = `<div class="par"><div class="par-r par-h"><span>#</span><span>Status</span><span>Quantidade</span><span style="text-align:right">%</span><span class="par-c">Anterior</span></div>
+  document.getElementById("aa-st").innerHTML = `<div class="par largo"><div class="par-r par-h"><span>#</span><span>Status</span><span>Quantidade</span><span style="text-align:right">%</span><span class="par-c">Anterior</span></div>
     ${linhas.map(([n, v, p, cor], j) => `<div class="par-r" style="cursor:default"><span class="par-n">${j + 1}</span><span class="par-l" title="${esc(n)}"><i style="--c:${cor}"></i>${esc(n)}</span>
       <div class="par-t"><div class="par-b" style="--w:${v / mx};background:${cor};animation-delay:${j * 40}ms"></div><span>${fmt(v)}</span></div>
       <span class="par-p">${pct(v / base)}</span><span class="par-c">${p == null ? "–" : fmt(p)}</span></div>`).join("")}</div>`;
@@ -995,15 +994,135 @@ function paginaAutoAdd(c) {
     </tbody><tfoot><tr><td>Total</td><td>${fmt(cur.ins)}</td>${cur.st.map(v => `<td>${fmt(v)}</td>`).join("")}<td>${fmt(cur.sem)}</td></tr></tfoot></table></div>`;
 }
 
+/* ================= Ocorrências Fleet / Flutuantes XPT ================= */
+// Pares nome ↔ quantidade que vêm separados por "|" na planilha: [dia, nome, qtd].
+function pares(lista) {
+  const tot = new Array(N).fill(0), itens = Array.from({ length: N }, () => []);
+  lista.forEach(([i, n, q]) => { tot[i] += q; itens[i].push([n, q]); });
+  return { tot, itens };
+}
+const FL = pares(D.fleet), FX = pares(D.flut);
+const BASE_COR = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#4a3aa7", "#d03b3b", "#0b8f9e"];
+const corBase = j => BASE_COR[j] || "#898781";
+const somaP = (P, a, b) => range(a, b).reduce((s, i) => s + P.tot[i], 0);
+function agrupa(P, a, b) {
+  const m = new Map();
+  for (let i = a; i <= b; i++) P.itens[i].forEach(([n, q]) => {
+    const r = m.get(n) || { n, q: 0, dias: 0 };
+    r.q += q; r.dias++; m.set(n, r);
+  });
+  return [...m.values()].sort((x, y) => y.q - x.q || x.n.localeCompare(y.n));
+}
+function tipPares(P, rotulo, cor) {
+  return i => `<div class="tt-h"><span>${ddmm(i)}/${D.dias[i].slice(0, 4)} · ${DOW[datas[i].getDay()]}</span></div>`
+    + (P.itens[i].length ? tipLinhas(P.itens[i].map(([n, q]) => [n, fmt(q), cor(n)])) : `<div class="ax">Nada lançado</div>`)
+    + `<div class="tt-f"><span>${rotulo}</span><span>${fmt(P.tot[i])}</span></div>`;
+}
+// Ranking em barras: linhas = [nome, valor, cor, última coluna]
+function ranking(linhas, total, nomeCol, ultCol) {
+  if (!linhas.length) return `<div class="vazio-msg">Nada lançado no período.</div>`;
+  const mx = Math.max(1, ...linhas.map(l => l[1]));
+  return `<div class="par largo"><div class="par-r par-h"><span>#</span><span>${nomeCol}</span><span>Quantidade</span><span style="text-align:right">%</span><span class="par-c">${ultCol}</span></div>
+    ${linhas.map(([n, v, cor, u], j) => `<div class="par-r" style="cursor:default"><span class="par-n">${j + 1}</span><span class="par-l" title="${esc(n)}"><i style="--c:${cor}"></i>${esc(n)}</span>
+      <div class="par-t"><div class="par-b" style="--w:${v / mx};background:${cor};animation-delay:${j * 40}ms"></div><span>${fmt(v)}</span></div>
+      <span class="par-p">${total ? pct(v / total) : "–"}</span><span class="par-c">${u}</span></div>`).join("")}</div>`;
+}
+const dataCel = i => `<td>${ddmm(i)}/${D.dias[i].slice(2, 4)} <span class="ax">${DOW[datas[i].getDay()]}</span></td>`;
+
+function paginaFleet(c) {
+  const cur = somaP(FL, c.a, c.b), prev = c.p ? somaP(FL, c.p.a, c.p.b) : null;
+  const rank = agrupa(FL, c.a, c.b), top = rank[0];
+  const diasCom = c.idx.filter(i => FL.itens[i].length);
+  const reinc = rank.filter(r => r.dias > 1).length;
+  const COR = "#ee4d2d";
+
+  app.innerHTML = cabecalho("Ocorrências Fleet", textoPeriodo(c) + " · drivers que devolveram pedidos",
+      cur ? `<span class="badge bad">${fmt(cur)} pedido(s) devolvido(s)</span>` : `<span class="badge good">✓ Nenhuma devolução</span>`)
+    + `<div class="kpis k4">
+      <div class="kpi" style="--c:${COR}"><div class="kpi-l">Pedidos devolvidos</div><div class="kpi-v" data-n="${cur}">0</div>
+        <div class="kpi-s">${delta(cur, prev)}<span>Média/dia <b>${fmt2(cur / c.n)}</b></span></div>
+        ${sparkline(c.idx.map(i => FL.tot[i]), COR)}</div>
+      <div class="kpi" style="--c:#4a3aa7"><div class="kpi-l">Drivers ofensores</div><div class="kpi-v" data-n="${rank.length}">0</div>
+        <div class="kpi-s"><span>${reinc ? `<b>${reinc}</b> reincidente(s) (mais de 1 dia)` : "nenhum reincidente"}</span></div></div>
+      <div class="kpi" style="--c:#0b0b0b"><div class="kpi-l">Dias com devolução</div><div class="kpi-v" data-n="${diasCom.length}">0</div>
+        <div class="kpi-s"><span>de <b>${c.n}</b> dia(s) no período · ${pct(diasCom.length / c.n, 0)}</span></div></div>
+      <div class="kpi" style="--c:${ST_COR.crit}"><div class="kpi-l">Maior ofensor</div>
+        <div class="kpi-v txt">${top ? esc(top.n) : "–"}</div>
+        <div class="kpi-s" style="margin-top:auto"><span>${top ? `<b>${fmt(top.q)}</b> pedido(s) · ${pct(top.q / cur, 0)} do total · ${top.dias} dia(s)` : "nenhum driver no período"}</span></div></div>
+    </div>
+    <div class="row c2">
+      <section class="card"><div class="card-h"><div><h2>Pedidos devolvidos por dia</h2><p>Passe o mouse para ver os drivers de cada dia</p></div></div><div id="fl-evo"></div></section>
+      ${cardHtml("fl-rank", "Ranking de drivers ofensores", "Pedidos devolvidos no período · dias = em quantos dias o driver apareceu")}
+    </div>
+    ${cardHtml("fl-tbl", "Drivers ofensores por dia", "Dias mais recentes primeiro")}`;
+  contaAte(app);
+
+  desenha(() => colunasDia(document.getElementById("fl-evo"), c.idx, [{ nome: "Pedidos devolvidos", cor: COR, vals: c.idx.map(i => FL.tot[i]) }],
+    { alto: 280, tip: tipPares(FL, "Total do dia", () => COR) }));
+  document.getElementById("fl-rank").innerHTML = ranking(rank.map(r => [r.n, r.q, COR, r.dias]), cur, "Driver", "Dias");
+
+  const linhas = [...c.idx].reverse().flatMap(i => FL.itens[i].map(([n, q]) => [i, n, q]));
+  document.getElementById("fl-tbl").innerHTML = linhas.length ? `<div class="tbl"><table><thead><tr><th style="cursor:default">Data</th><th style="cursor:default;text-align:left">Driver</th><th style="cursor:default">Pedidos devolvidos</th></tr></thead><tbody>
+    ${linhas.map(([i, n, q]) => `<tr>${dataCel(i)}<td style="text-align:left;font-weight:600">${esc(n)}</td><td class="tot">${fmt(q)}</td></tr>`).join("")}
+    </tbody><tfoot><tr><td>Total</td><td style="text-align:left">${rank.length} driver(s)</td><td>${fmt(cur)}</td></tr></tfoot></table></div>`
+    : `<div class="vazio-msg">Nenhum driver ofensor no período.</div>`;
+}
+
+function paginaFlut(c) {
+  const cur = somaP(FX, c.a, c.b), prev = c.p ? somaP(FX, c.p.a, c.p.b) : null;
+  const B = D.bases, nb = B.length;
+  const porBase = (a, b) => { const s = new Array(nb).fill(0); for (let i = a; i <= b; i++) FX.itens[i].forEach(([n, q]) => s[B.indexOf(n)] += q); return s; };
+  const pb = porBase(c.a, c.b), pbPrev = c.p ? porBase(c.p.a, c.p.b) : null;
+  const ord = B.map((n, j) => j).sort((x, y) => pb[y] - pb[x] || x - y);
+  const top = pb[ord[0]] > 0 ? ord[0] : null;
+  const comFlut = pb.filter(v => v > 0).length;
+  const diasCom = c.idx.filter(i => FX.tot[i] > 0);
+  const diaBase = (i, j) => FX.itens[i].reduce((s, [n, q]) => s + (n === B[j] ? q : 0), 0);
+  const corN = n => corBase(B.indexOf(n));
+
+  app.innerHTML = cabecalho("Flutuantes XPT", textoPeriodo(c) + " · quantidade por base XPT",
+      cur ? `<span class="badge">${fmt(cur)} flutuante(s)</span>` : `<span class="badge good">✓ Nenhum flutuante</span>`)
+    + `<div class="kpis k4">
+      <div class="kpi" style="--c:#ee4d2d"><div class="kpi-l">Flutuantes XPT</div><div class="kpi-v" data-n="${cur}">0</div>
+        <div class="kpi-s">${delta(cur, prev)}<span>Média/dia <b>${fmt2(cur / c.n)}</b></span></div>
+        ${sparkline(c.idx.map(i => FX.tot[i]), "#ee4d2d")}</div>
+      <div class="kpi" style="--c:#2a78d6"><div class="kpi-l">Bases com flutuantes</div><div class="kpi-v" data-n="${comFlut}">0</div>
+        <div class="kpi-s"><span>de <b>${nb}</b> bases XPT</span></div></div>
+      <div class="kpi" style="--c:#0b0b0b"><div class="kpi-l">Dias com flutuantes</div><div class="kpi-v" data-n="${diasCom.length}">0</div>
+        <div class="kpi-s"><span>de <b>${c.n}</b> dia(s) no período · ${pct(diasCom.length / c.n, 0)}</span></div></div>
+      <div class="kpi" style="--c:${top == null ? "#898781" : corBase(top)}"><div class="kpi-l">Base com mais flutuantes</div>
+        <div class="kpi-v txt">${top == null ? "–" : esc(B[top])}</div>
+        <div class="kpi-s" style="margin-top:auto"><span>${top == null ? "nenhum flutuante no período" : `<b>${fmt(pb[top])}</b> · ${pct(pb[top] / cur, 0)} do total`}</span></div></div>
+    </div>
+    <div class="row c2">
+      <section class="card"><div class="card-h"><div><h2>Flutuantes por dia</h2><p>Colunas empilhadas por base XPT</p></div></div>
+        ${legenda(B.map((n, j) => [n, corBase(j)]))}<div id="fx-evo"></div></section>
+      ${cardHtml("fx-rank", "Flutuantes por base", `Quantidade no período${c.p ? ` · anterior = ${c.pLabel}` : ""}`)}
+    </div>
+    ${cardHtml("fx-tbl", "Flutuantes por dia e base", "Dias mais recentes primeiro")}`;
+  contaAte(app);
+
+  desenha(() => colunasDia(document.getElementById("fx-evo"), c.idx, B.map((n, j) => ({ nome: n, cor: corBase(j), vals: c.idx.map(i => diaBase(i, j)) })),
+    { alto: 280, tip: tipPares(FX, "Total do dia", corN) }));
+  document.getElementById("fx-rank").innerHTML = ranking(ord.map(j => [B[j], pb[j], corBase(j), pbPrev ? fmt(pbPrev[j]) : "–"]), cur, "Base", "Anterior");
+
+  const cel = v => `<td style="${v ? "" : "color:#c3c2b7"}">${fmt(v)}</td>`;
+  document.getElementById("fx-tbl").innerHTML = `<div class="tbl"><table><thead><tr><th style="cursor:default">Data</th>${B.map(n => `<th style="cursor:default">${esc(n)}</th>`).join("")}<th style="cursor:default">Total</th></tr></thead><tbody>
+    ${[...c.idx].reverse().map(i => `<tr>${dataCel(i)}${B.map((_, j) => cel(diaBase(i, j))).join("")}<td class="tot">${fmt(FX.tot[i])}</td></tr>`).join("")}
+    </tbody><tfoot><tr><td>Total</td>${pb.map(v => `<td>${fmt(v)}</td>`).join("")}<td>${fmt(cur)}</td></tr></tfoot></table></div>`;
+}
+
 /* ================= montagem ================= */
 const TABS = [
   ["torre", "Torre de Controle", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>'],
   ["riscos", "Perdas & Riscos", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17v.5"/></svg>'],
   ["oper", "Análise Operacional", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16v-5M11 16V6M16 16v-8M21 16v-3"/></svg>'],
   ["auto", "Auto Add", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17.5" cy="18" r="1.8"/></svg>'],
+  ["fleet", "Ocorrências Fleet", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>'],
+  ["flut", "Flutuantes XPT", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 3 7.5v9L12 21l9-4.5v-9L12 3z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></svg>'],
   ["audit", "Auditoria diária", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/></svg>'],
 ];
-const PAGINAS = { torre: paginaTorre, riscos: paginaRiscos, oper: paginaOperacional, auto: paginaAutoAdd, audit: paginaAuditoria };
+const PAGINAS = { torre: paginaTorre, riscos: paginaRiscos, oper: paginaOperacional, auto: paginaAutoAdd, fleet: paginaFleet, flut: paginaFlut, audit: paginaAuditoria };
 
 function montaTopo() {
   document.getElementById("logo").innerHTML = LOGO ? `<img src="${LOGO}" alt="Shopee Xpress">` : `<div class="wordmark">Shopee <i>Xpress</i></div>`;
