@@ -86,6 +86,7 @@ COL_DRIVER = "DRIVER_OFENSOR_DO_DIA"
 COL_QTD_DRIVER = "QTD"
 
 # Flutuantes XPT: quantidade e base, na mesma ordem. Ex.: "3 | 5" e "XPT - PICOS | XPT - TAUÁ".
+# Também aceita só o total e uma base por item. Ex.: "3" e "XPT - PICOS | XPT - PICOS | XPT - TAUÁ".
 COL_FLUTUANTES = "FLUTUANTES_XPT"
 COL_BASE = "BASE_XPT"
 BASES_XPT = ["Araripina", "Barro", "Campos Sales", "Itaporanga", "Ouricuri", "Picos", "Pombal", "Tauá"]
@@ -197,6 +198,15 @@ def ler_pares(df, col_nome, col_qtd, rotulo, limpa):
             continue
         if pd.isna(data):
             print(f"  Aviso {rotulo}: lançamento acima da primeira data ignorado.")
+            continue
+        if len(qtds) == 1 and len(nomes) > 1:
+            # Um nome por item e só o total na quantidade (ex.: 60 e "XPT - BARRO | XPT - BARRO | ..."):
+            # cada nome conta 1
+            total = pd.to_numeric(qtds[0].replace(",", "."), errors="coerce")
+            if total != len(nomes):
+                print(f"  Aviso {rotulo} {data:%d/%m}: total {qtds[0]} e {len(nomes)} nome(s) lançado(s) — "
+                      "contei 1 por nome; confira a planilha.")
+            linhas += [(data, limpa(n), 1.0) for n in nomes]
             continue
         if len(nomes) != len(qtds):
             print(f"  Aviso {rotulo} {data:%d/%m}: {len(nomes)} nome(s) e {len(qtds)} quantidade(s) — confira a planilha.")
