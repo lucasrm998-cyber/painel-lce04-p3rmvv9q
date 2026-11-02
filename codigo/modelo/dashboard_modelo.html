@@ -159,6 +159,8 @@ svg text { font-family: var(--font); }
 .par-80::before, .par-80::after { content: ""; flex: 1; border-top: 1px dashed var(--brand); }
 @keyframes crescer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .par.largo .par-r { grid-template-columns: 22px minmax(130px, 1.5fr) minmax(80px, 1fr) 52px 54px; }
+.par.largo.ult .par-r { grid-template-columns: 22px minmax(130px, 1.2fr) minmax(80px, 1fr) 52px minmax(150px, 1fr); }
+.par.ult .par-c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- calendário ---------- */
 .cal-wrap { display: flex; flex-wrap: wrap; gap: 18px 26px; }
@@ -995,15 +997,16 @@ function paginaAutoAdd(c) {
 }
 
 /* ================= Ocorrências Fleet / Flutuantes XPT ================= */
-// Pares nome ↔ quantidade que vêm separados por "|" na planilha: [dia, nome, qtd].
+// Pares nome ↔ quantidade que vêm separados por "|" na planilha: [dia, nome, qtd, motivo?].
 function pares(lista) {
   const tot = new Array(N).fill(0), itens = Array.from({ length: N }, () => []);
-  lista.forEach(([i, n, q]) => { tot[i] += q; itens[i].push([n, q]); });
+  lista.forEach(([i, n, q, m]) => { tot[i] += q; itens[i].push([n, q, m]); });
   return { tot, itens };
 }
 const FL = pares(D.fleet), FX = pares(D.flut);
 const BASE_COR = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#4a3aa7", "#d03b3b", "#0b8f9e"];
 const corBase = j => BASE_COR[j] || "#898781";
+const MOT_COR = ["#ee4d2d", "#2a78d6", "#eda100", "#1baf7a", "#4a3aa7", "#e87ba4", "#0b8f9e", "#d03b3b", "#eb6834", "#5d9c2f", "#b04fc2", "#7a5c3e"];
 const somaP = (P, a, b) => range(a, b).reduce((s, i) => s + P.tot[i], 0);
 function agrupa(P, a, b) {
   const m = new Map();
@@ -1019,10 +1022,10 @@ function tipPares(P, rotulo, cor) {
     + `<div class="tt-f"><span>${rotulo}</span><span>${fmt(P.tot[i])}</span></div>`;
 }
 // Ranking em barras: linhas = [nome, valor, cor, última coluna]
-function ranking(linhas, total, nomeCol, ultCol) {
+function ranking(linhas, total, nomeCol, ultCol, ultLarga = false) {
   if (!linhas.length) return `<div class="vazio-msg">Nada lançado no período.</div>`;
   const mx = Math.max(1, ...linhas.map(l => l[1]));
-  return `<div class="par largo"><div class="par-r par-h"><span>#</span><span>${nomeCol}</span><span>Quantidade</span><span style="text-align:right">%</span><span class="par-c">${ultCol}</span></div>
+  return `<div class="par largo${ultLarga ? " ult" : ""}"><div class="par-r par-h"><span>#</span><span>${nomeCol}</span><span>Quantidade</span><span style="text-align:right">%</span><span class="par-c">${ultCol}</span></div>
     ${linhas.map(([n, v, cor, u], j) => `<div class="par-r" style="cursor:default"><span class="par-n">${j + 1}</span><span class="par-l" title="${esc(n)}"><i style="--c:${cor}"></i>${esc(n)}</span>
       <div class="par-t"><div class="par-b" style="--w:${v / mx};background:${cor};animation-delay:${j * 40}ms"></div><span>${fmt(v)}</span></div>
       <span class="par-p">${total ? pct(v / total) : "–"}</span><span class="par-c">${u}</span></div>`).join("")}</div>`;
@@ -1036,6 +1039,20 @@ function paginaFleet(c) {
   const reinc = rank.filter(r => r.dias > 1).length;
   const COR = "#ee4d2d";
 
+  // Motivos de devolução: cores pela posição no ranking do período ("Não informado" sempre cinza)
+  const MOT = D.motivos, SEM_MOT = MOT.length - 1;
+  const porMotivo = (a, b) => {
+    const s = MOT.map(() => ({ q: 0, drivers: new Set() }));
+    for (let i = a; i <= b; i++) FL.itens[i].forEach(([n, q, m]) => { s[m].q += q; s[m].drivers.add(n); });
+    return s;
+  };
+  const pm = porMotivo(c.a, c.b), pmPrev = c.p ? porMotivo(c.p.a, c.p.b) : null;
+  const ordM = MOT.map((_, k) => k).filter(k => pm[k].q > 0).sort((x, y) => (x === SEM_MOT) - (y === SEM_MOT) || pm[y].q - pm[x].q);
+  const corM = new Map(ordM.filter(k => k !== SEM_MOT).map((k, j) => [k, MOT_COR[j % MOT_COR.length]]));
+  corM.set(SEM_MOT, AA_SEM);
+  const topM = ordM.find(k => k !== SEM_MOT);
+  const diaMot = (i, k) => FL.itens[i].reduce((s, [, q, m]) => s + (m === k ? q : 0), 0);
+
   app.innerHTML = cabecalho("Ocorrências Fleet", textoPeriodo(c) + " · drivers que devolveram pedidos",
       cur ? `<span class="badge bad">${fmt(cur)} pedido(s) devolvido(s)</span>` : `<span class="badge good">✓ Nenhuma devolução</span>`)
     + `<div class="kpis k4">
@@ -1044,27 +1061,43 @@ function paginaFleet(c) {
         ${sparkline(c.idx.map(i => FL.tot[i]), COR)}</div>
       <div class="kpi" style="--c:#4a3aa7"><div class="kpi-l">Drivers ofensores</div><div class="kpi-v" data-n="${rank.length}">0</div>
         <div class="kpi-s"><span>${reinc ? `<b>${reinc}</b> reincidente(s) (mais de 1 dia)` : "nenhum reincidente"}</span></div></div>
-      <div class="kpi" style="--c:#0b0b0b"><div class="kpi-l">Dias com devolução</div><div class="kpi-v" data-n="${diasCom.length}">0</div>
-        <div class="kpi-s"><span>de <b>${c.n}</b> dia(s) no período · ${pct(diasCom.length / c.n, 0)}</span></div></div>
+      <div class="kpi" style="--c:${topM == null ? "#898781" : corM.get(topM)}"><div class="kpi-l">Principal motivo</div>
+        <div class="kpi-v txt">${topM == null ? "–" : esc(MOT[topM])}</div>
+        <div class="kpi-s" style="margin-top:auto"><span>${topM == null ? (cur ? "motivos não informados" : "nenhuma devolução no período") : `<b>${fmt(pm[topM].q)}</b> pedido(s) · ${pct(pm[topM].q / cur, 0)} do total`}</span></div></div>
       <div class="kpi" style="--c:${ST_COR.crit}"><div class="kpi-l">Maior ofensor</div>
         <div class="kpi-v txt">${top ? esc(top.n) : "–"}</div>
         <div class="kpi-s" style="margin-top:auto"><span>${top ? `<b>${fmt(top.q)}</b> pedido(s) · ${pct(top.q / cur, 0)} do total · ${top.dias} dia(s)` : "nenhum driver no período"}</span></div></div>
     </div>
     <div class="row c2">
-      <section class="card"><div class="card-h"><div><h2>Pedidos devolvidos por dia</h2><p>Passe o mouse para ver os drivers de cada dia</p></div></div><div id="fl-evo"></div></section>
-      ${cardHtml("fl-rank", "Ranking de drivers ofensores", "Pedidos devolvidos no período · dias = em quantos dias o driver apareceu")}
+      <section class="card"><div class="card-h"><div><h2>Pedidos devolvidos por dia</h2><p>Colunas empilhadas por motivo · ${diasCom.length} de ${c.n} dia(s) com devolução · passe o mouse para ver os drivers</p></div></div>
+        ${ordM.length ? legenda(ordM.map(k => [MOT[k], corM.get(k)])) : ""}<div id="fl-evo"></div></section>
+      ${cardHtml("fl-mot", "Motivos de devolução", `Pedidos devolvidos por motivo${c.p ? ` · anterior = ${c.pLabel}` : ""}`)}
     </div>
+    ${cardHtml("fl-rank", "Ranking de drivers ofensores", "Pedidos devolvidos no período · dias = em quantos dias o driver apareceu")}
     ${cardHtml("fl-tbl", "Drivers ofensores por dia", "Dias mais recentes primeiro")}`;
   contaAte(app);
 
-  desenha(() => colunasDia(document.getElementById("fl-evo"), c.idx, [{ nome: "Pedidos devolvidos", cor: COR, vals: c.idx.map(i => FL.tot[i]) }],
-    { alto: 280, tip: tipPares(FL, "Total do dia", () => COR) }));
-  document.getElementById("fl-rank").innerHTML = ranking(rank.map(r => [r.n, r.q, COR, r.dias]), cur, "Driver", "Dias");
+  const tipFleet = i => `<div class="tt-h"><span>${ddmm(i)}/${D.dias[i].slice(0, 4)} · ${DOW[datas[i].getDay()]}</span></div>`
+    + (FL.itens[i].length ? tipLinhas(FL.itens[i].map(([n, q, m]) => [`${n} · ${MOT[m]}`, fmt(q), corM.get(m)])) : `<div class="ax">Nada lançado</div>`)
+    + `<div class="tt-f"><span>Total do dia</span><span>${fmt(FL.tot[i])}</span></div>`;
+  desenha(() => colunasDia(document.getElementById("fl-evo"), c.idx,
+    ordM.map(k => ({ nome: MOT[k], cor: corM.get(k), vals: c.idx.map(i => diaMot(i, k)) })),
+    { alto: 280, tip: tipFleet }));
+  document.getElementById("fl-mot").innerHTML = ranking(
+    ordM.map(k => [MOT[k], pm[k].q, corM.get(k), pmPrev ? fmt(pmPrev[k].q) : "–"]), cur, "Motivo", "Anterior");
+  // Motivo principal de cada driver no período (o de mais pedidos)
+  const motDriver = n => {
+    const s = new Map();
+    for (let i = c.a; i <= c.b; i++) FL.itens[i].forEach(([d, q, m]) => { if (d === n) s.set(m, (s.get(m) || 0) + q); });
+    const k = [...s].sort((x, y) => y[1] - x[1])[0][0];
+    return `<span title="${esc(MOT[k])}">${esc(MOT[k])}</span>`;
+  };
+  document.getElementById("fl-rank").innerHTML = ranking(rank.map(r => [r.n, r.q, COR, `${r.dias} dia(s) · ${motDriver(r.n)}`]), cur, "Driver", "Dias · principal motivo", true);
 
-  const linhas = [...c.idx].reverse().flatMap(i => FL.itens[i].map(([n, q]) => [i, n, q]));
-  document.getElementById("fl-tbl").innerHTML = linhas.length ? `<div class="tbl"><table><thead><tr><th style="cursor:default">Data</th><th style="cursor:default;text-align:left">Driver</th><th style="cursor:default">Pedidos devolvidos</th></tr></thead><tbody>
-    ${linhas.map(([i, n, q]) => `<tr>${dataCel(i)}<td style="text-align:left;font-weight:600">${esc(n)}</td><td class="tot">${fmt(q)}</td></tr>`).join("")}
-    </tbody><tfoot><tr><td>Total</td><td style="text-align:left">${rank.length} driver(s)</td><td>${fmt(cur)}</td></tr></tfoot></table></div>`
+  const linhas = [...c.idx].reverse().flatMap(i => FL.itens[i].map(([n, q, m]) => [i, n, q, m]));
+  document.getElementById("fl-tbl").innerHTML = linhas.length ? `<div class="tbl"><table><thead><tr><th style="cursor:default">Data</th><th style="cursor:default;text-align:left">Driver</th><th style="cursor:default;text-align:left">Motivo da devolução</th><th style="cursor:default">Pedidos devolvidos</th></tr></thead><tbody>
+    ${linhas.map(([i, n, q, m]) => `<tr>${dataCel(i)}<td style="text-align:left;font-weight:600">${esc(n)}</td><td style="text-align:left;${m === SEM_MOT ? "color:#898781" : ""}"><i style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;background:${corM.get(m)}"></i>${esc(MOT[m])}</td><td class="tot">${fmt(q)}</td></tr>`).join("")}
+    </tbody><tfoot><tr><td>Total</td><td style="text-align:left">${rank.length} driver(s)</td><td></td><td>${fmt(cur)}</td></tr></tfoot></table></div>`
     : `<div class="vazio-msg">Nenhum driver ofensor no período.</div>`;
 }
 
