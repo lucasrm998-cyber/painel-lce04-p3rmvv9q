@@ -234,7 +234,7 @@ def ler_pares(df, col_nome, col_qtd, rotulo, limpa, col_motivo=None):
         return vazio
     if col_motivo and col_motivo not in df.columns:
         print(f"  Aviso: coluna de motivos de '{rotulo}' não encontrada (motivos ficam '{MOTIVO_VAZIO}').")
-    col_m = df[col_motivo] if col_motivo in df.columns else pd.Series(None, index=df.index)
+    col_m = df[col_motivo] if col_motivo in df.columns else pd.Series(None, index=df.index, dtype=object)
     linhas = []
     for data, nomes, qtds, mots in zip(df["DATA"].ffill(), df[col_nome], df[col_qtd], col_m):
         nomes, qtds = partes(nomes), partes(qtds)
