@@ -84,6 +84,30 @@ STATUS_AUTO_ADD = [  # a ordem define a ordem e a cor no dashboard
 # Ex.: "LEANDRO SOBREIRA SILVA | OSMAR HENRIQUE" com Qtd "11 | 15".
 COL_DRIVER = "DRIVER_OFENSOR_DO_DIA"
 COL_QTD_DRIVER = "QTD"
+# Motivo de cada devolução, na mesma ordem dos drivers (um só motivo vale para todos os drivers do dia)
+COL_MOTIVO = "MOTIVOS_DE_DEVOLUCAO"
+MOTIVO_VAZIO = "Não informado"
+MOTIVOS_DEVOLUCAO = [  # grafia usada no dashboard
+    "Endereço não encontrado",
+    "Chuva forte / Desastres Naturais",
+    "Não entregar",
+    "Palavra-chave incorreta ou não informada",
+    "Motorista não teve tempo de entregar",
+    "Não coube no veículo",
+    "Comércio Fechado",
+    "Item Danificado",
+    "Item Perdido",
+    "Mudança de endereço",
+    "Recusado por terceiros",
+    "Ausente",
+    "Rejeitado pelo comprador",
+    "Área de risco",
+    "Tentativa de Roubo/Assalto",
+    "Roubo/Assalto",
+    "Motorista desistiu da rota",
+    "Problemas Mecânicos",
+    "Fora de Rota",
+]
 
 # Flutuantes XPT: quantidade e base, na mesma ordem. Ex.: "3 | 5" e "XPT - PICOS | XPT - TAUÁ".
 # Também aceita só o total e uma base por item. Ex.: "3" e "XPT - PICOS | XPT - PICOS | XPT - TAUÁ".
@@ -91,7 +115,7 @@ COL_FLUTUANTES = "FLUTUANTES_XPT"
 COL_BASE = "BASE_XPT"
 BASES_XPT = ["Araripina", "Barro", "Campos Sales", "Itaporanga", "Ouricuri", "Picos", "Pombal", "Tauá"]
 
-COLUNAS_TEXTO = [COL_STATUS, COL_DRIVER, COL_QTD_DRIVER, COL_FLUTUANTES, COL_BASE]
+COLUNAS_TEXTO = [COL_STATUS, COL_DRIVER, COL_QTD_DRIVER, COL_MOTIVO, COL_FLUTUANTES, COL_BASE]
 
 
 def normalizar(texto):
@@ -129,7 +153,7 @@ def ler_planilha(caminho):
 
     df["DATA"] = pd.to_datetime(df["DATA"], errors="coerce", dayfirst=True)
     status = ler_status(df)
-    fleet = ler_pares(df, COL_DRIVER, COL_QTD_DRIVER, "Driver ofensor", nome_driver)
+    fleet = ler_pares(df, COL_DRIVER, COL_QTD_DRIVER, "Driver ofensor", nome_driver, COL_MOTIVO)
     flut = ler_pares(df, COL_BASE, COL_FLUTUANTES, "Flutuantes XPT", nome_base)
     sem_data = df["DATA"].isna() & df.drop(columns=["DATA", *COLUNAS_TEXTO], errors="ignore").notna().any(axis=1)
     if sem_data.any():
@@ -184,14 +208,35 @@ def nome_base(texto):
     return conhecidas.get(normalizar(sem_xpt), " ".join(sem_xpt.split()).title())
 
 
-def ler_pares(df, col_nome, col_qtd, rotulo, limpa):
-    """Lê colunas casadas por '|' (nome ↔ quantidade) -> DataFrame DATA, NOME, QTD."""
-    vazio = pd.DataFrame(columns=["DATA", "NOME", "QTD"])
+def nome_motivo(texto):
+    """Usa a grafia de MOTIVOS_DEVOLUCAO quando reconhece o motivo."""
+    conhecidos = {normalizar(m): m for m in MOTIVOS_DEVOLUCAO}
+    return conhecidos.get(normalizar(texto), " ".join(texto.split()))
+
+
+def motivos_do_dia(valor, nomes, data):
+    """Motivo de cada nome, na mesma ordem; um só motivo vale para todos."""
+    motivos = [nome_motivo(m) for m in partes(valor) if m not in {"0", "0.0"}]
+    if not nomes:
+        return []
+    if len(motivos) == 1:
+        return motivos * len(nomes)
+    if motivos and len(motivos) != len(nomes):
+        print(f"  Aviso Motivos {data:%d/%m}: {len(nomes)} driver(s) e {len(motivos)} motivo(s) — confira a planilha.")
+    return [motivos[k] if k < len(motivos) else MOTIVO_VAZIO for k in range(len(nomes))]
+
+
+def ler_pares(df, col_nome, col_qtd, rotulo, limpa, col_motivo=None):
+    """Lê colunas casadas por '|' (nome ↔ quantidade [↔ motivo]) -> DataFrame DATA, NOME, QTD, MOTIVO."""
+    vazio = pd.DataFrame(columns=["DATA", "NOME", "QTD", "MOTIVO"])
     if col_nome not in df.columns or col_qtd not in df.columns:
         print(f"  Aviso: colunas de '{rotulo}' não encontradas (aba fica vazia).")
         return vazio
+    if col_motivo and col_motivo not in df.columns:
+        print(f"  Aviso: coluna de motivos de '{rotulo}' não encontrada (motivos ficam '{MOTIVO_VAZIO}').")
+    col_m = df[col_motivo] if col_motivo in df.columns else pd.Series(None, index=df.index)
     linhas = []
-    for data, nomes, qtds in zip(df["DATA"].ffill(), df[col_nome], df[col_qtd]):
+    for data, nomes, qtds, mots in zip(df["DATA"].ffill(), df[col_nome], df[col_qtd], col_m):
         nomes, qtds = partes(nomes), partes(qtds)
         qtds = [q for q in qtds if q not in {"0", "0.0"}] if not nomes else qtds
         if not nomes and not qtds:
@@ -199,6 +244,8 @@ def ler_pares(df, col_nome, col_qtd, rotulo, limpa):
         if pd.isna(data):
             print(f"  Aviso {rotulo}: lançamento acima da primeira data ignorado.")
             continue
+        mots = motivos_do_dia(mots, nomes, data) if col_motivo else []
+        motivo = lambda k: mots[k] if k < len(mots) else MOTIVO_VAZIO
         if len(qtds) == 1 and len(nomes) > 1:
             # Um nome por item e só o total na quantidade (ex.: 60 e "XPT - BARRO | XPT - BARRO | ..."):
             # cada nome conta 1
@@ -206,7 +253,7 @@ def ler_pares(df, col_nome, col_qtd, rotulo, limpa):
             if total != len(nomes):
                 print(f"  Aviso {rotulo} {data:%d/%m}: total {qtds[0]} e {len(nomes)} nome(s) lançado(s) — "
                       "contei 1 por nome; confira a planilha.")
-            linhas += [(data, limpa(n), 1.0) for n in nomes]
+            linhas += [(data, limpa(n), 1.0, motivo(k)) for k, n in enumerate(nomes)]
             continue
         if len(nomes) != len(qtds):
             print(f"  Aviso {rotulo} {data:%d/%m}: {len(nomes)} nome(s) e {len(qtds)} quantidade(s) — confira a planilha.")
@@ -216,8 +263,8 @@ def ler_pares(df, col_nome, col_qtd, rotulo, limpa):
             if pd.isna(qtd):
                 print(f"  Aviso {rotulo} {data:%d/%m}: quantidade '{qtds[k]}' não é número (entra 0).")
                 qtd = 0
-            linhas.append((data, nome, float(qtd)))
-    return pd.DataFrame(linhas, columns=["DATA", "NOME", "QTD"]) if linhas else vazio
+            linhas.append((data, nome, float(qtd), motivo(k)))
+    return pd.DataFrame(linhas, columns=["DATA", "NOME", "QTD", "MOTIVO"]) if linhas else vazio
 
 
 def ler_status(df):
@@ -226,13 +273,14 @@ def ler_status(df):
         print("  Aviso: coluna 'Status' não encontrada (status ficam zerados).")
         return pd.DataFrame(columns=STATUS_AUTO_ADD, dtype=int)
     st = pd.DataFrame({"DATA": df["DATA"].ffill(), "S": df[COL_STATUS].map(partes)}).explode("S")
-    st = st[st["S"].notna()]
+    st = st[st["S"].notna() & ~st["S"].isin({"0", "0.0"})]  # dias futuros vêm com 0 no lugar do status
     sem_dia = st["DATA"].isna().sum()
     if sem_dia:
         print(f"  Aviso: {sem_dia} status acima da primeira data foram ignorados.")
     st = st[st["DATA"].notna()]
 
     conhecidos = {normalizar(s): s for s in STATUS_AUTO_ADD}
+    conhecidos.update({k + "S": s for k, s in conhecidos.items()})  # plural: "Realocados" -> "Realocado"
     st["S"] = st["S"].map(lambda s: conhecidos.get(normalizar(s), str(s).strip()))
     novos = sorted(set(st["S"]) - set(STATUS_AUTO_ADD))
     if novos:
@@ -288,17 +336,23 @@ def conferir_auto_add(df, status):
 def montar_dados(df, status, fleet, flut):
     numero = lambda v: int(v) if float(v).is_integer() else round(float(v), 2)
     pos = {d: i for i, d in enumerate(df.index)}
-    pares = lambda t: [[pos[d], n, numero(q)] for d, n, q in t.itertuples(index=False)]
+    pares = lambda t: [[pos[d], n, numero(q)] for d, n, q, _ in t.itertuples(index=False)]
     novas = sorted(set(flut["NOME"]) - set(BASES_XPT))
     if novas:
         print(f"  Aviso Flutuantes XPT: base(s) fora da lista (entram no fim): {', '.join(novas)}")
+    motivos_novos = sorted(set(fleet["MOTIVO"]) - {*MOTIVOS_DEVOLUCAO, MOTIVO_VAZIO})
+    if motivos_novos:
+        print(f"  Aviso Motivos: fora da lista (entram como estão): {', '.join(motivos_novos)}")
+    motivos = [*MOTIVOS_DEVOLUCAO, *motivos_novos, MOTIVO_VAZIO]
     return {
         "auto": {
             "status": list(status.columns),
             "ins": [numero(v) for v in df[COL_INSUCESSO]],
             "st": status.values.tolist(),
         },
-        "fleet": pares(fleet),
+        # [dia, driver, qtd, índice do motivo em "motivos"]
+        "fleet": [[pos[d], n, numero(q), motivos.index(m)] for d, n, q, m in fleet.itertuples(index=False)],
+        "motivos": motivos,
         "flut": pares(flut),
         "bases": [*BASES_XPT, *novas],
         "gerado": datetime.now().strftime("%d/%m/%Y %H:%M"),
