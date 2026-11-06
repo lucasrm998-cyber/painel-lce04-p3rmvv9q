@@ -68,7 +68,10 @@ COLUNAS_IGNORADAS = {"COLUNA_DE_CONFERENCIA"}
 # Insucesso de Auto Add: fica fora do total de ocorrências e do farol (aba própria).
 # Cada insucesso tem um Status. Vários no mesmo dia vêm na mesma célula separados por "|"
 # (ex.: "Não Coube no Veículo | Não Deu Tempo"); linhas sem DATA logo abaixo de um dia
-# também contam para esse dia.
+# também contam para esse dia. A coluna AUTO ADD aceita três formatos:
+#   - total do dia e um status por item: 2 e "Não Deu Tempo | Erro Operacional"
+#   - quantidade por status, na mesma ordem: "10 | 1 | 6" e "Removidos... | Não Deu Tempo | Realocados"
+#   - código do pedido por status (cada código conta 1): "BR26... | BR27..." e "Realocados | Erro Operacional"
 COL_INSUCESSO = "AUTO_ADD"
 NOMES_ANTIGOS = {"INSUCESSO_DE_AUTO_ADD": COL_INSUCESSO}
 COL_STATUS = "STATUS"
@@ -78,7 +81,11 @@ STATUS_AUTO_ADD = [  # a ordem define a ordem e a cor no dashboard
     "Removidos Como Fora de Rota",
     "Erro Operacional",
     "Realocado",
+    "Volumoso esquecido",
+    "Não é da Station LCE 04",
 ]
+STATUS_APELIDOS = {"REALOCACAO": "Realocado"}  # outra grafia na planilha -> nome no dashboard
+ZEROS = {"0", "0.0"}  # dias futuros vêm pré-preenchidos com 0
 
 # Ocorrências Fleet: driver que devolveu pedidos e a quantidade, na mesma ordem.
 # Ex.: "LEANDRO SOBREIRA SILVA | OSMAR HENRIQUE" com Qtd "11 | 15".
@@ -152,12 +159,13 @@ def ler_planilha(caminho):
         print(f"  Aviso: colunas novas ignoradas (cadastre em CATEGORIAS): {', '.join(extras)}")
 
     df["DATA"] = pd.to_datetime(df["DATA"], errors="coerce", dayfirst=True)
-    status = ler_status(df)
-    fleet = ler_pares(df, COL_DRIVER, COL_QTD_DRIVER, "Driver ofensor", nome_driver, COL_MOTIVO)
+    status, insucessos = ler_status(df)
+    fleet =ler_pares(df, COL_DRIVER, COL_QTD_DRIVER, "Driver ofensor", nome_driver, COL_MOTIVO)
     flut = ler_pares(df, COL_BASE, COL_FLUTUANTES, "Flutuantes XPT", nome_base)
     sem_data = df["DATA"].isna() & df.drop(columns=["DATA", *COLUNAS_TEXTO], errors="ignore").notna().any(axis=1)
     if sem_data.any():
         print(f"  Aviso: {sem_data.sum()} linha(s) sem data válida foram ignoradas.")
+    df[COL_INSUCESSO] = insucessos
     df = df[df["DATA"].notna()]
 
     numericas = [*CATEGORIAS, COL_INSUCESSO]
@@ -267,26 +275,45 @@ def ler_pares(df, col_nome, col_qtd, rotulo, limpa, col_motivo=None):
     return pd.DataFrame(linhas, columns=["DATA", "NOME", "QTD", "MOTIVO"]) if linhas else vazio
 
 
+def qtd_auto_add(item):
+    """'10' -> 10; código de pedido ('BR2645...') -> 1."""
+    qtd = pd.to_numeric(item.replace(",", "."), errors="coerce")
+    return 1.0 if pd.isna(qtd) else float(qtd)
+
+
 def ler_status(df):
-    """Conta, por dia, quantos insucessos de Auto Add têm cada Status."""
+    """Lê AUTO ADD e Status -> (quantidade por dia e Status, insucessos de cada linha)."""
     if COL_STATUS not in df.columns:
         print("  Aviso: coluna 'Status' não encontrada (status ficam zerados).")
-        return pd.DataFrame(columns=STATUS_AUTO_ADD, dtype=int)
-    st = pd.DataFrame({"DATA": df["DATA"].ffill(), "S": df[COL_STATUS].map(partes)}).explode("S")
-    st = st[st["S"].notna() & ~st["S"].isin({"0", "0.0"})]  # dias futuros vêm com 0 no lugar do status
-    sem_dia = st["DATA"].isna().sum()
-    if sem_dia:
-        print(f"  Aviso: {sem_dia} status acima da primeira data foram ignorados.")
-    st = st[st["DATA"].notna()]
-
+    vazia = pd.Series(None, index=df.index, dtype=object)
     conhecidos = {normalizar(s): s for s in STATUS_AUTO_ADD}
     conhecidos.update({k + "S": s for k, s in conhecidos.items()})  # plural: "Realocados" -> "Realocado"
-    st["S"] = st["S"].map(lambda s: conhecidos.get(normalizar(s), str(s).strip()))
+    conhecidos.update(STATUS_APELIDOS)
+
+    linhas, insucessos = [], []
+    for data, stats, valor in zip(df["DATA"].ffill(), df.get(COL_STATUS, vazia), df.get(COL_INSUCESSO, vazia)):
+        stats = [conhecidos.get(normalizar(s), s) for s in partes(stats) if s not in ZEROS]
+        qtds = [qtd_auto_add(i) for i in partes(valor) if i not in ZEROS]
+        insucessos.append(sum(qtds))
+        if not stats:
+            continue
+        if pd.isna(data):
+            print(f"  Aviso: {len(stats)} status acima da primeira data foram ignorados.")
+            continue
+        if len(qtds) > 1 and len(qtds) != len(stats):
+            print(f"  Aviso Auto Add {data:%d/%m}: {len(qtds)} valor(es) e {len(stats)} status — confira a planilha.")
+        if len(qtds) == len(stats) or len(qtds) > 1:  # quantidade (ou código) por status, na mesma ordem
+            linhas += [(data, s, qtds[k] if k < len(qtds) else 1.0) for k, s in enumerate(stats)]
+        else:  # total do dia (ou nada) e um status por item
+            linhas += [(data, s, 1.0) for s in stats]
+
+    st = pd.DataFrame(linhas, columns=["DATA", "S", "Q"])
     novos = sorted(set(st["S"]) - set(STATUS_AUTO_ADD))
     if novos:
         print(f"  Aviso: status fora da lista (entram no fim): {', '.join(novos)}")
-    contagem = st.groupby(["DATA", "S"]).size().unstack(fill_value=0)
-    return contagem.reindex(columns=[*STATUS_AUTO_ADD, *novos], fill_value=0).astype(int)
+    contagem = st.groupby(["DATA", "S"])["Q"].sum().unstack(fill_value=0)
+    return (contagem.reindex(columns=[*STATUS_AUTO_ADD, *novos], fill_value=0).astype(int),
+            pd.Series(insucessos, index=df.index))
 
 
 def baixar_planilha():
