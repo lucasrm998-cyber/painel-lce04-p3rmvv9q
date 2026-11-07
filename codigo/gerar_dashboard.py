@@ -73,7 +73,7 @@ COLUNAS_IGNORADAS = {"COLUNA_DE_CONFERENCIA"}
 #   - quantidade por status, na mesma ordem: "10 | 1 | 6" e "Removidos... | Não Deu Tempo | Realocados"
 #   - código do pedido por status (cada código conta 1): "BR26... | BR27..." e "Realocados | Erro Operacional"
 COL_INSUCESSO = "AUTO_ADD"
-NOMES_ANTIGOS = {"INSUCESSO_DE_AUTO_ADD": COL_INSUCESSO}
+NOMES_ANTIGOS = {"INSUCESSO_DE_AUTO_ADD": COL_INSUCESSO, "INSUCESSOS_DE_AUTO_ADD": COL_INSUCESSO}
 COL_STATUS = "STATUS"
 STATUS_AUTO_ADD = [  # a ordem define a ordem e a cor no dashboard
     "Não Coube no Veículo",
@@ -122,7 +122,14 @@ COL_FLUTUANTES = "FLUTUANTES_XPT"
 COL_BASE = "BASE_XPT"
 BASES_XPT = ["Araripina", "Barro", "Campos Sales", "Itaporanga", "Ouricuri", "Picos", "Pombal", "Tauá"]
 
-COLUNAS_TEXTO = [COL_STATUS, COL_DRIVER, COL_QTD_DRIVER, COL_MOTIVO, COL_FLUTUANTES, COL_BASE]
+# Flutuantes LM: cada posição é um flutuante (data do desvio ↔ rota ↔ operador), na mesma ordem.
+# Ex.: "06/11/sexta-feira | 06/11/sexta-feira", "A-11 | B-10" e "JOSE | MARIA".
+COL_DATA_DESVIO = "DATA_DO_DESVIO"
+COL_ROTA = "ROTA"
+COL_OPERADOR = "OPERADOR"
+
+COLUNAS_TEXTO = [COL_STATUS, COL_DRIVER, COL_QTD_DRIVER, COL_MOTIVO, COL_FLUTUANTES, COL_BASE,
+                 COL_DATA_DESVIO, COL_ROTA, COL_OPERADOR]
 
 
 def normalizar(texto):
@@ -162,6 +169,7 @@ def ler_planilha(caminho):
     status, insucessos = ler_status(df)
     fleet =ler_pares(df, COL_DRIVER, COL_QTD_DRIVER, "Driver ofensor", nome_driver, COL_MOTIVO)
     flut = ler_pares(df, COL_BASE, COL_FLUTUANTES, "Flutuantes XPT", nome_base)
+    flut_lm = ler_flutuantes_lm(df)
     sem_data = df["DATA"].isna() & df.drop(columns=["DATA", *COLUNAS_TEXTO], errors="ignore").notna().any(axis=1)
     if sem_data.any():
         print(f"  Aviso: {sem_data.sum()} linha(s) sem data válida foram ignoradas.")
@@ -183,7 +191,7 @@ def ler_planilha(caminho):
     if not (total > 0).any():
         raise ValueError("A planilha não tem nenhuma ocorrência lançada.")
     lancado = ((total > 0) | (df[COL_INSUCESSO] > 0) | df["DATA"].isin(status.index)
-               | df["DATA"].isin(fleet["DATA"]) | df["DATA"].isin(flut["DATA"]))
+               | df["DATA"].isin(fleet["DATA"]) | df["DATA"].isin(flut["DATA"]) | df["DATA"].isin(flut_lm["DATA"]))
     df = df[df["DATA"] <= df.loc[lancado, "DATA"].max()]
 
     # Dias que faltam no meio do período entram zerados (o calendário fica contínuo)
@@ -193,7 +201,7 @@ def ler_planilha(caminho):
         print(f"  Aviso: {faltam} dia(s) sem linha na planilha entraram como zero.")
     no_periodo = lambda t: t[t["DATA"].isin(dias)]
     return (df.set_index("DATA").reindex(dias, fill_value=0), status.reindex(dias, fill_value=0),
-            no_periodo(fleet), no_periodo(flut))
+            no_periodo(fleet), no_periodo(flut), no_periodo(flut_lm))
 
 
 def partes(valor):
@@ -273,6 +281,42 @@ def ler_pares(df, col_nome, col_qtd, rotulo, limpa, col_motivo=None):
                 qtd = 0
             linhas.append((data, nome, float(qtd), motivo(k)))
     return pd.DataFrame(linhas, columns=["DATA", "NOME", "QTD", "MOTIVO"]) if linhas else vazio
+
+
+def data_desvio(texto):
+    """'06/11/sexta-feira' -> '06/11 sexta-feira' (outros formatos ficam como vieram)."""
+    achou = re.match(r"^(\d{1,2}/\d{1,2})/?\s*([^\d].*)?$", texto)
+    return " ".join(p for p in achou.groups() if p) if achou else texto
+
+
+def ler_flutuantes_lm(df):
+    """Lê DATA DO DESVIO, ROTA e OPERADOR -> DataFrame DATA, DESVIO, ROTA, OPERADOR (um flutuante por linha)."""
+    colunas = ["DATA", "DESVIO", "ROTA", "OPERADOR"]
+    if COL_ROTA not in df.columns or COL_OPERADOR not in df.columns:
+        print("  Aviso: colunas de 'Flutuantes LM' não encontradas (aba fica vazia).")
+        return pd.DataFrame(columns=colunas)
+    vazia = pd.Series(None, index=df.index, dtype=object)
+    linhas = []
+    for data, desvios, rotas, operadores in zip(df["DATA"].ffill(), df.get(COL_DATA_DESVIO, vazia),
+                                                df[COL_ROTA], df[COL_OPERADOR]):
+        if isinstance(desvios, datetime):  # célula formatada como data no Sheets
+            desvios = f"{desvios:%d/%m}"
+        desvios, rotas, operadores = ([p for p in partes(v) if p not in ZEROS]
+                                      for v in (desvios, rotas, operadores))
+        qtd = max(len(desvios), len(rotas), len(operadores))
+        if not qtd:
+            continue
+        if pd.isna(data):
+            print("  Aviso Flutuantes LM: lançamento acima da primeira data ignorado.")
+            continue
+        if not len(desvios) == len(rotas) == len(operadores):
+            print(f"  Aviso Flutuantes LM {data:%d/%m}: {len(desvios)} data(s) do desvio, {len(rotas)} rota(s) e "
+                  f"{len(operadores)} operador(es) — confira a planilha.")
+        pega = lambda lista, k: lista[k] if k < len(lista) else MOTIVO_VAZIO
+        linhas += [(data, data_desvio(pega(desvios, k)), " ".join(pega(rotas, k).split()),
+                    nome_driver(pega(operadores, k)) if k < len(operadores) else MOTIVO_VAZIO)
+                   for k in range(qtd)]
+    return pd.DataFrame(linhas, columns=colunas)
 
 
 def qtd_auto_add(item):
@@ -360,7 +404,7 @@ def conferir_auto_add(df, status):
         print(f"  Aviso Auto Add {dia:%d/%m}: {ins} insucesso(s) e {qtd} status lançado(s){falta}.")
 
 
-def montar_dados(df, status, fleet, flut):
+def montar_dados(df, status, fleet, flut, flut_lm):
     numero = lambda v: int(v) if float(v).is_integer() else round(float(v), 2)
     pos = {d: i for i, d in enumerate(df.index)}
     pares = lambda t: [[pos[d], n, numero(q)] for d, n, q, _ in t.itertuples(index=False)]
@@ -381,6 +425,8 @@ def montar_dados(df, status, fleet, flut):
         "fleet": [[pos[d], n, numero(q), motivos.index(m)] for d, n, q, m in fleet.itertuples(index=False)],
         "motivos": motivos,
         "flut": pares(flut),
+        # [dia, data do desvio, rota, operador]
+        "flm": [[pos[d], de, r, o] for d, de, r, o in flut_lm.itertuples(index=False)],
         "bases": [*BASES_XPT, *novas],
         "gerado": datetime.now().strftime("%d/%m/%Y %H:%M"),
         "hub": NOME_HUB,
@@ -393,9 +439,9 @@ def montar_dados(df, status, fleet, flut):
 
 
 def main():
-    df, status, fleet, flut = ler_planilha(baixar_planilha())
+    df, status, fleet, flut, flut_lm = ler_planilha(baixar_planilha())
     conferir_auto_add(df, status)
-    dados = montar_dados(df, status, fleet, flut)
+    dados = montar_dados(df, status, fleet, flut, flut_lm)
 
     modelo = MODELO.read_text(encoding="utf-8")
     dados_json = json.dumps(dados, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
@@ -419,6 +465,7 @@ def main():
     print(f"  Ocorrências Fleet no mês: {int(no_mes(fleet)['QTD'].sum())} devolução(ões), "
           f"{no_mes(fleet)['NOME'].nunique()} driver(s)")
     print(f"  Flutuantes XPT no mês: {int(no_mes(flut)['QTD'].sum())}")
+    print(f"  Flutuantes LM no mês: {len(no_mes(flut_lm))}")
     print("Dashboard gerado:", SAIDA.name)
     if "--abrir" in sys.argv:
         os.startfile(SAIDA)
