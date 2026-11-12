@@ -4,8 +4,13 @@
 name: Atualizar dashboard
 
 on:
+  # O agendador do GitHub atrasa (às vezes horas) em horário cheio: 4 tentativas fora da hora cheia,
+  # basta uma sair no horário. Horários em UTC = Brasília + 3h (11:53, 12:23, 12:53 e 13:23).
   schedule:
-    - cron: "0 15 * * *"   # 15h UTC = 12h em Brasília (o GitHub pode atrasar alguns minutos)
+    - cron: "53 14 * * *"
+    - cron: "23 15 * * *"
+    - cron: "53 15 * * *"
+    - cron: "23 16 * * *"
   workflow_dispatch:        # botão "Run workflow" para rodar na hora
 
 permissions:
